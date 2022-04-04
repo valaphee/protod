@@ -17,8 +17,8 @@
 package com.valaphee.protod
 
 import com.google.protobuf.DescriptorProtos
-import com.google.protobuf.ExtensionRegistry
 import com.google.protobuf.GeneratedMessageV3
+import com.google.protobuf.UnknownFieldSet
 import java.io.PrintWriter
 
 /**
@@ -26,14 +26,15 @@ import java.io.PrintWriter
  */
 class ProtoWriter(
     private val printWriter: PrintWriter,
-    private val indent: String = "  ",
+    private val messages: MutableMap<String, DescriptorProtos.DescriptorProto>,
+    private val messageExtensions: MutableMap<String, out Map<Int, DescriptorProtos.FieldDescriptorProto>>
 ) {
     private var first = false
     private var indentLevel = 0
 
-    lateinit var extensionRegistry: ExtensionRegistry
-
     fun print(file: DescriptorProtos.FileDescriptorProto) {
+        println("""syntax = "proto2";""")
+        println()
         println("""package ${file.`package`};""")
         printImports(file.dependencyList)
         printOptions(file.options)
@@ -42,12 +43,12 @@ class ProtoWriter(
     }
 
     private fun println() {
-        repeat(indentLevel) { printWriter.print(indent) }
+        repeat(indentLevel) { printWriter.print("  ") }
         printWriter.println()
     }
 
     private fun println(value: String) {
-        repeat(indentLevel) { printWriter.print(indent) }
+        repeat(indentLevel) { printWriter.print("  ") }
         printWriter.println(value)
     }
 
@@ -57,24 +58,15 @@ class ProtoWriter(
     }
 
     private fun printOptions(options: GeneratedMessageV3.ExtendableMessage<*>) {
-        options.toByteString().newCodedInput()
-
-
-        //println(extensionRegistry.findImmutableExtensionByName("${options.descriptorForType.fullName}"))
-
         if (options.allFields.isNotEmpty() || options.unknownFields.asMap().isNotEmpty()) if (first) first = false else println()
-        options.allFields.forEach { println("""option ${it.key} = ${it.value};""") }
-    }
-
-    private fun printOptions(options: DescriptorProtos.ServiceOptions) {
-        val options0 = DescriptorProtos.ServiceOptions.parseFrom(options.toByteString().newCodedInput(), extensionRegistry)
-        if (options0.allFields.isNotEmpty() || options.unknownFields.asMap().isNotEmpty()) if (first) first = false else println()
-        options0.allFields.forEach { println("""option ${it.key} = ${it.value};""") }
-        if (options0.unknownFields.asMap().isNotEmpty()) {
-            System.out.println("MISSING ")
-
-            println(extensionRegistry.findImmutableExtensionByName("google.protobuf.ServiceOptions"))
+        options.allFields.forEach {
+            println("""option ${it.key.name} = ${when (it.value) {
+                is String -> """"${it.value}""""
+                else -> it.value
+            }};""")
         }
+        val messageExtensions = messageExtensions[".${options.descriptorForType.fullName}"] ?: emptyMap()
+        options.unknownFields.asMap().forEach { unknownField -> messageExtensions[unknownField.key]?.let { messageExtension -> messages[messageExtension.typeName]?.fieldList?.let { messageExtensionFields -> unknownField.value.lengthDelimitedList.forEach { UnknownFieldSet.parseFrom(it).asMap().forEach { messageExtensionField -> println("""option (${messageExtension.name}).${messageExtensionFields.single { it.number == messageExtensionField.key}?.name} = ${messageExtensionField.value.varintList.firstOrNull() ?: messageExtensionField.value.fixed32List.firstOrNull() ?: messageExtensionField.value.fixed64List.firstOrNull() ?: messageExtensionField.value.lengthDelimitedList.firstOrNull()?.toStringUtf8()?.let { """"$it"""" } ?: TODO()};""") } } } } }
     }
 
     private fun printMessages(messageTypeList: List<DescriptorProtos.DescriptorProto>) {

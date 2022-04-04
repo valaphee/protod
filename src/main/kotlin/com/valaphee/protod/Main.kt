@@ -18,15 +18,12 @@ package com.valaphee.protod
 
 import com.google.protobuf.CodedInputStream
 import com.google.protobuf.DescriptorProtos
-import com.google.protobuf.Descriptors
-import com.google.protobuf.DynamicMessage
-import com.google.protobuf.ExtensionRegistry
 import com.valaphee.protod.util.occurrencesOf
 import java.io.File
 
 fun main() {
     val bytes = File("C:\\Program Files (x86)\\Battle.net\\Battle.net.13401\\battle.net.dll").readBytes()
-    val fileDescriptorProtos = mutableListOf<DescriptorProtos.FileDescriptorProto>()
+    val files = mutableListOf<DescriptorProtos.FileDescriptorProto>()
     String(bytes, Charsets.US_ASCII).occurrencesOf(".proto").forEach {
         var offset = 0
         while (true) {
@@ -40,7 +37,7 @@ fun main() {
                         while (true) {
                             val codedInputStream = CodedInputStream.newInstance(bytes, begin, offset0)
                             try {
-                                fileDescriptorProtos += DescriptorProtos.FileDescriptorProto.parseFrom(codedInputStream)
+                                files += DescriptorProtos.FileDescriptorProto.parseFrom(codedInputStream)
 
                                 break
                             } catch (_: Exception) {
@@ -56,37 +53,11 @@ fun main() {
         }
     }
 
-    val fileDescriptorProtos0 = fileDescriptorProtos.toMutableList()
-    val fileDescriptors = mutableMapOf<String, Descriptors.FileDescriptor>()
-    var changed = true
-    while (fileDescriptorProtos0.isNotEmpty() && changed) {
-        changed = false
-
-        val fileDescriptorProtoIterator = fileDescriptorProtos0.iterator()
-        while (fileDescriptorProtoIterator.hasNext()) {
-            val fileDescriptorProto = fileDescriptorProtoIterator.next()
-            if (fileDescriptorProto.dependencyList.all { fileDescriptors.contains(it) }) {
-                try {
-                    val fileDescriptor = Descriptors.FileDescriptor.buildFrom(fileDescriptorProto, fileDescriptorProto.dependencyList.map { fileDescriptors[it] }.toTypedArray())
-                    fileDescriptors[fileDescriptor.name] = fileDescriptor
-                    fileDescriptorProtoIterator.remove()
-                    changed = true
-                } catch (ex: Exception) {
-                    ex.printStackTrace()
-                }
-            }
-        }
-    }
-
-    val extensionRegistry = ExtensionRegistry.newInstance()
-    fileDescriptors.values.forEach { it.extensions.forEach {if (it.javaType == Descriptors.FieldDescriptor.JavaType.MESSAGE) extensionRegistry.add(it, DynamicMessage.newBuilder(it.messageType).apply { it.messageType.fields.forEach { setField(it, it.defaultValue) } }.build()) else extensionRegistry.add(it) } }
+    val messages = mutableMapOf<String, DescriptorProtos.DescriptorProto>()
+    files.forEach { file -> file.messageTypeList.forEach { message -> messages[".${file.`package`}.${message.name}"] = message } }
+    val messageExtensions = mutableMapOf<String, MutableMap<Int, DescriptorProtos.FieldDescriptorProto>>()
+    files.forEach { file -> file.extensionList.forEach { extension -> messages[extension.typeName]?.let { messageExtensions.getOrPut(extension.extendee) { mutableMapOf() }[extension.number] = extension } } }
 
     val outputPath = File("output")
-    fileDescriptorProtos.forEach {
-        File(outputPath, it.name).apply { parentFile.mkdirs() }.printWriter().use { printWriter ->
-            ProtoWriter(printWriter).also {
-                it.extensionRegistry = extensionRegistry
-            }.print(it)
-        }
-    }
+    files.forEach { file -> File(outputPath, file.name).apply { parentFile.mkdirs() }.printWriter().use { printWriter -> ProtoWriter(printWriter, messages, messageExtensions).print(file) } }
 }
