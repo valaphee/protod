@@ -18,6 +18,9 @@ package com.valaphee.protod
 
 import com.google.protobuf.CodedInputStream
 import com.google.protobuf.DescriptorProtos
+import com.google.protobuf.Descriptors
+import com.google.protobuf.DynamicMessage
+import com.google.protobuf.ExtensionRegistry
 import com.valaphee.protod.util.occurrencesOf
 import java.io.File
 
@@ -53,13 +56,37 @@ fun main() {
         }
     }
 
-    val extendedMessages = mutableMapOf<String, MutableMap<Int, String>>()
-    fileDescriptorProtos.forEach {
-        it.extensionList.forEach {
-            extendedMessages.getOrPut(it.extendee) { mutableMapOf() }[it.number] = it.name
+    val fileDescriptorProtos0 = fileDescriptorProtos.toMutableList()
+    val fileDescriptors = mutableMapOf<String, Descriptors.FileDescriptor>()
+    var changed = true
+    while (fileDescriptorProtos0.isNotEmpty() && changed) {
+        changed = false
+
+        val fileDescriptorProtoIterator = fileDescriptorProtos0.iterator()
+        while (fileDescriptorProtoIterator.hasNext()) {
+            val fileDescriptorProto = fileDescriptorProtoIterator.next()
+            if (fileDescriptorProto.dependencyList.all { fileDescriptors.contains(it) }) {
+                try {
+                    val fileDescriptor = Descriptors.FileDescriptor.buildFrom(fileDescriptorProto, fileDescriptorProto.dependencyList.map { fileDescriptors[it] }.toTypedArray())
+                    fileDescriptors[fileDescriptor.name] = fileDescriptor
+                    fileDescriptorProtoIterator.remove()
+                    changed = true
+                } catch (ex: Exception) {
+                    ex.printStackTrace()
+                }
+            }
         }
     }
 
+    val extensionRegistry = ExtensionRegistry.newInstance()
+    fileDescriptors.values.forEach { it.extensions.forEach {if (it.javaType == Descriptors.FieldDescriptor.JavaType.MESSAGE) extensionRegistry.add(it, DynamicMessage.newBuilder(it.messageType).apply { it.messageType.fields.forEach { setField(it, it.defaultValue) } }.build()) else extensionRegistry.add(it) } }
+
     val outputPath = File("output")
-    fileDescriptorProtos.forEach { File(outputPath, it.name).apply { parentFile.mkdirs() }.printWriter().use { printWriter -> ProtoWriter(printWriter).print(it) } }
+    fileDescriptorProtos.forEach {
+        File(outputPath, it.name).apply { parentFile.mkdirs() }.printWriter().use { printWriter ->
+            ProtoWriter(printWriter).also {
+                it.extensionRegistry = extensionRegistry
+            }.print(it)
+        }
+    }
 }
