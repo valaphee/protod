@@ -32,7 +32,7 @@ fun main(arguments: Array<String>) {
 
     val bytes = File(input).readBytes()
     val files = mutableListOf<DescriptorProtos.FileDescriptorProto>()
-    String(bytes, Charsets.US_ASCII).occurrencesOf(".proto").forEach {
+    bytes.occurrencesOf(".proto".toByteArray()).forEach {
         var offset = 0
         while (true) {
             try {
@@ -41,16 +41,16 @@ fun main(arguments: Array<String>) {
                     val begin = it - offset - 1
                     val end = bytes.size
                     if (CodedInputStream.newInstance(bytes, begin, end - begin).readTag() == 10) {
-                        var offset0 = end - begin
+                        var size = end - begin
                         while (true) {
-                            val codedInputStream = CodedInputStream.newInstance(bytes, begin, offset0)
+                            val codedInputStream = CodedInputStream.newInstance(bytes, begin, size)
                             try {
                                 files += DescriptorProtos.FileDescriptorProto.parseFrom(codedInputStream)
 
                                 break
                             } catch (_: Exception) {
                             }
-                            offset0 = codedInputStream.totalBytesRead - 1
+                            size = codedInputStream.totalBytesRead - 1
                         }
                     }
                     break

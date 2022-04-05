@@ -5,11 +5,11 @@ package com.valaphee.protod.util
  * the length of the longest suffix of a substring of pattern from 0 to i
  * that is also a prefix of the pattern itself.
  */
-private fun computePrefixFunction(pattern: CharSequence): IntArray {
-    val resultTable = IntArray(pattern.length)
+private fun computePrefixFunction(pattern: ByteArray): IntArray {
+    val resultTable = IntArray(pattern.size)
 
     var matches = 0
-    for (i in 1..pattern.length - 1) {
+    for (i in 1..pattern.size - 1) {
         while (matches > 0 && pattern[matches] != pattern[i]) {
             matches = resultTable[matches]
         }
@@ -35,14 +35,14 @@ private fun computePrefixFunction(pattern: CharSequence): IntArray {
  *
  * @return A list of indices where the supplied [pattern] starts in the text.
  */
-public fun CharSequence.occurrencesOf(pattern: CharSequence, ignoreCase: Boolean = false): Sequence<Int> {
+public fun ByteArray.occurrencesOf(pattern: ByteArray): Sequence<Int> {
 
     if (isEmpty() || pattern.isEmpty()) {
         return emptySequence()
     }
 
-    if (pattern.length == 1) {
-        return indices.asSequence().filter { this[it].equals(pattern[0], ignoreCase) }
+    if (pattern.size == 1) {
+        return indices.asSequence().filter { this[it].equals(pattern[0]) }
     }
 
     // Non-trivial pattern matching, perform computation
@@ -53,18 +53,18 @@ public fun CharSequence.occurrencesOf(pattern: CharSequence, ignoreCase: Boolean
     var i = 0
     var matches = 0
     return generateSequence {
-        while (i < length) {
-            while (matches > 0 && !pattern[matches].equals(this[i], ignoreCase)) {
+        while (i < size) {
+            while (matches > 0 && !pattern[matches].equals(this[i])) {
                 matches = prefixFunction[matches - 1]
             }
 
-            if (pattern[matches].equals(this[i], ignoreCase)) {
+            if (pattern[matches].equals(this[i])) {
                 matches++
             }
-            if (matches == pattern.length) {
+            if (matches == pattern.size) {
                 matches = prefixFunction[matches - 1]
                 i++
-                return@generateSequence i - pattern.length
+                return@generateSequence i - pattern.size
             }
 
             i++
