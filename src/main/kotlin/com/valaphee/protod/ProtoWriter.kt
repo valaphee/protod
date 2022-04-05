@@ -41,6 +41,9 @@ class ProtoWriter(
         }
 
         printImports(file.dependencyList, file.publicDependencyList)
+        println()
+        println("option java_multiple_files = true;")
+        if (!file.options.hasJavaGenericServices() && file.serviceCount != 0) println("option java_generic_services = true;")
         printOptions(file.options)
         printExtensions(file.extensionList)
         printEnums(file.enumTypeList)
@@ -72,10 +75,12 @@ class ProtoWriter(
     private fun generateOptions(options: GeneratedMessageV3.ExtendableMessage<*>): MutableList<String> {
         val generatedOptions = mutableListOf<String>()
         options.allFields.forEach {
-            generatedOptions += "${it.key.name} = ${when (it.value) {
-                is String -> "\"${it.value}\""
-                else -> it.value
-            }}"
+            generatedOptions += "${it.key.name} = ${
+                when (it.value) {
+                    is String -> "\"${it.value}\""
+                    else -> it.value
+                }
+            }"
         }
         val messageExtensions = messageExtensions[".${options.descriptorForType.fullName}"] ?: emptyMap()
         options.unknownFields.asMap().forEach { unknownField ->
@@ -87,29 +92,31 @@ class ProtoWriter(
                         val tag = codedInputStream.readTag()
                         if (tag == 0) break
                         val fieldNumber = WireFormat.getTagFieldNumber(tag)
-                        val messageExtensionField = messageExtensionFields.single { it.number == fieldNumber}
-                        generatedOptions += "(${messageExtension.name}).${messageExtensionField.name} = ${when (messageExtensionField.type) {
-                            DescriptorProtos.FieldDescriptorProto.Type.TYPE_DOUBLE -> codedInputStream.readDouble()
-                            DescriptorProtos.FieldDescriptorProto.Type.TYPE_FLOAT -> codedInputStream.readFloat()
-                            DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64 -> codedInputStream.readInt64()
-                            DescriptorProtos.FieldDescriptorProto.Type.TYPE_UINT64 -> codedInputStream.readUInt64()
-                            DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT32 -> codedInputStream.readInt32()
-                            DescriptorProtos.FieldDescriptorProto.Type.TYPE_FIXED64 -> codedInputStream.readFixed64()
-                            DescriptorProtos.FieldDescriptorProto.Type.TYPE_FIXED32 -> codedInputStream.readFixed32()
-                            DescriptorProtos.FieldDescriptorProto.Type.TYPE_BOOL -> codedInputStream.readBool()
-                            DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING -> "\"${codedInputStream.readString()}\""
-                            DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES -> codedInputStream.readBytes()
-                            DescriptorProtos.FieldDescriptorProto.Type.TYPE_UINT32 -> codedInputStream.readUInt32()
-                            DescriptorProtos.FieldDescriptorProto.Type.TYPE_ENUM -> {
-                                val value = codedInputStream.readEnum()
-                                checkNotNull(enums[messageExtensionField.typeName]).valueList.single { it.number == value}.name
+                        val messageExtensionField = messageExtensionFields.single { it.number == fieldNumber }
+                        generatedOptions += "(${messageExtension.name}).${messageExtensionField.name} = ${
+                            when (messageExtensionField.type) {
+                                DescriptorProtos.FieldDescriptorProto.Type.TYPE_DOUBLE -> codedInputStream.readDouble()
+                                DescriptorProtos.FieldDescriptorProto.Type.TYPE_FLOAT -> codedInputStream.readFloat()
+                                DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64 -> codedInputStream.readInt64()
+                                DescriptorProtos.FieldDescriptorProto.Type.TYPE_UINT64 -> codedInputStream.readUInt64()
+                                DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT32 -> codedInputStream.readInt32()
+                                DescriptorProtos.FieldDescriptorProto.Type.TYPE_FIXED64 -> codedInputStream.readFixed64()
+                                DescriptorProtos.FieldDescriptorProto.Type.TYPE_FIXED32 -> codedInputStream.readFixed32()
+                                DescriptorProtos.FieldDescriptorProto.Type.TYPE_BOOL -> codedInputStream.readBool()
+                                DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING -> "\"${codedInputStream.readString()}\""
+                                DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES -> codedInputStream.readBytes()
+                                DescriptorProtos.FieldDescriptorProto.Type.TYPE_UINT32 -> codedInputStream.readUInt32()
+                                DescriptorProtos.FieldDescriptorProto.Type.TYPE_ENUM -> {
+                                    val value = codedInputStream.readEnum()
+                                    checkNotNull(enums[messageExtensionField.typeName]).valueList.single { it.number == value }.name
+                                }
+                                DescriptorProtos.FieldDescriptorProto.Type.TYPE_SFIXED32 -> codedInputStream.readSFixed32()
+                                DescriptorProtos.FieldDescriptorProto.Type.TYPE_SFIXED64 -> codedInputStream.readSFixed64()
+                                DescriptorProtos.FieldDescriptorProto.Type.TYPE_SINT32 -> codedInputStream.readSInt32()
+                                DescriptorProtos.FieldDescriptorProto.Type.TYPE_SINT64 -> codedInputStream.readSInt64()
+                                else -> TODO()
                             }
-                            DescriptorProtos.FieldDescriptorProto.Type.TYPE_SFIXED32 -> codedInputStream.readSFixed32()
-                            DescriptorProtos.FieldDescriptorProto.Type.TYPE_SFIXED64 -> codedInputStream.readSFixed64()
-                            DescriptorProtos.FieldDescriptorProto.Type.TYPE_SINT32 -> codedInputStream.readSInt32()
-                            DescriptorProtos.FieldDescriptorProto.Type.TYPE_SINT64 -> codedInputStream.readSInt64()
-                            else -> TODO()
-                        }}"
+                        }"
                     }
                 }
             }

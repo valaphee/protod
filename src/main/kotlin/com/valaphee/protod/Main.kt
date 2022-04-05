@@ -26,11 +26,11 @@ import java.io.File
 
 fun main(arguments: Array<String>) {
     val argumentParser = ArgParser("protod")
-    val inputArgument by argumentParser.option(ArgType.String, "input", "i", "Input file").required()
-    val outputArgument by argumentParser.option(ArgType.String, "output", "o", "Output path").required()
+    val input by argumentParser.option(ArgType.String, "input", "i", "Input file").required()
+    val output by argumentParser.option(ArgType.String, "output", "o", "Output path").required()
     argumentParser.parse(arguments)
 
-    val bytes = File(inputArgument).readBytes()
+    val bytes = File(input).readBytes()
     val files = mutableListOf<DescriptorProtos.FileDescriptorProto>()
     String(bytes, Charsets.US_ASCII).occurrencesOf(".proto").forEach {
         var offset = 0
@@ -78,14 +78,14 @@ fun main(arguments: Array<String>) {
     val messageExtensions = mutableMapOf<String, MutableMap<Int, DescriptorProtos.FieldDescriptorProto>>()
     files.forEach { file -> file.extensionList.forEach { extension -> messages[extension.typeName]?.let { messageExtensions.getOrPut(extension.extendee) { mutableMapOf() }[extension.number] = extension } } }
 
-    val outputPath = File(outputArgument)
+    val outputPath = File(output)
     files.forEach { file ->
         if (!included.contains(file.name)) File(outputPath, file.name).apply { parentFile.mkdirs() }.printWriter().use { printWriter ->
             printWriter.println(
                 """
                 /* AUTO-GENERATED FILE. DO NOT MODIFY.
                  */
-            """.trimIndent()
+                """.trimIndent()
             )
             ProtoWriter(printWriter, enums, messages, messageExtensions).print(file)
         }
