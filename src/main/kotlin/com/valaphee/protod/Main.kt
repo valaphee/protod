@@ -80,14 +80,29 @@ fun main(arguments: Array<String>) {
 
     val outputPath = File(outputArgument)
     files.forEach { file ->
-        File(outputPath, file.name).apply { parentFile.mkdirs() }.printWriter().use { printWriter ->
+        if (!included.contains(file.name)) File(outputPath, file.name).apply { parentFile.mkdirs() }.printWriter().use { printWriter ->
             printWriter.println(
                 """
-                    /* AUTO-GENERATED FILE. DO NOT MODIFY.
-                     */
-                """.trimIndent()
+                /* AUTO-GENERATED FILE. DO NOT MODIFY.
+                 */
+            """.trimIndent()
             )
             ProtoWriter(printWriter, enums, messages, messageExtensions).print(file)
         }
     }
 }
+
+private val included = setOf(
+    "google/protobuf/compiler/plugin.proto",
+    "google/protobuf/any.proto",
+    "google/protobuf/api.proto",
+    "google/protobuf/descriptor.proto",
+    "google/protobuf/duration.proto",
+    "google/protobuf/empty.proto",
+    "google/protobuf/field_mask.proto",
+    "google/protobuf/source_context.proto",
+    "google/protobuf/struct.proto",
+    "google/protobuf/timestamp.proto",
+    "google/protobuf/type.proto",
+    "google/protobuf/wrappers.proto",
+)
