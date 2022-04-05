@@ -19,10 +19,18 @@ package com.valaphee.protod
 import com.google.protobuf.CodedInputStream
 import com.google.protobuf.DescriptorProtos
 import com.valaphee.protod.util.occurrencesOf
+import kotlinx.cli.ArgParser
+import kotlinx.cli.ArgType
+import kotlinx.cli.required
 import java.io.File
 
-fun main() {
-    val bytes = File("C:\\Program Files (x86)\\Battle.net\\Battle.net.13401\\battle.net.dll").readBytes()
+fun main(arguments: Array<String>) {
+    val argumentParser = ArgParser("protod")
+    val inputArgument by argumentParser.option(ArgType.String, "input", "i", "Input file").required()
+    val outputArgument by argumentParser.option(ArgType.String, "output", "o", "Output path").required()
+    argumentParser.parse(arguments)
+
+    val bytes = File(inputArgument).readBytes()
     val files = mutableListOf<DescriptorProtos.FileDescriptorProto>()
     String(bytes, Charsets.US_ASCII).occurrencesOf(".proto").forEach {
         var offset = 0
@@ -53,11 +61,33 @@ fun main() {
         }
     }
 
+    val enums = mutableMapOf<String, DescriptorProtos.EnumDescriptorProto>()
     val messages = mutableMapOf<String, DescriptorProtos.DescriptorProto>()
-    files.forEach { file -> file.messageTypeList.forEach { message -> messages[".${file.`package`}.${message.name}"] = message } }
+    files.forEach { file ->
+        file.enumTypeList.forEach { enums[".${file.`package`}.${it.name}"] = it }
+        file.messageTypeList.forEach {
+            fun flatten(name: String, message: DescriptorProtos.DescriptorProto) {
+                messages[name] = message
+                message.enumTypeList.forEach { enums["$name.${it.name}"] = it }
+                message.nestedTypeList.forEach { flatten("$name.${it.name}", it) }
+            }
+
+            flatten(".${file.`package`}.${it.name}", it)
+        }
+    }
     val messageExtensions = mutableMapOf<String, MutableMap<Int, DescriptorProtos.FieldDescriptorProto>>()
     files.forEach { file -> file.extensionList.forEach { extension -> messages[extension.typeName]?.let { messageExtensions.getOrPut(extension.extendee) { mutableMapOf() }[extension.number] = extension } } }
 
-    val outputPath = File("output")
-    files.forEach { file -> File(outputPath, file.name).apply { parentFile.mkdirs() }.printWriter().use { printWriter -> ProtoWriter(printWriter, messages, messageExtensions).print(file) } }
+    val outputPath = File(outputArgument)
+    files.forEach { file ->
+        File(outputPath, file.name).apply { parentFile.mkdirs() }.printWriter().use { printWriter ->
+            printWriter.println(
+                """
+                    /* AUTO-GENERATED FILE. DO NOT MODIFY.
+                     */
+                """.trimIndent()
+            )
+            ProtoWriter(printWriter, enums, messages, messageExtensions).print(file)
+        }
+    }
 }

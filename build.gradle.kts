@@ -37,6 +37,7 @@ repositories {
 dependencies {
     implementation("com.google.protobuf:protobuf-kotlin:3.19.4")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.6.20")
+    implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.4")
 }
 
 tasks {
