@@ -82,9 +82,9 @@ class ProtoWriter(
                 }
             }"
         }
-        val messageExtensions = messageExtensions[".${options.descriptorForType.fullName}"] ?: emptyMap()
+        val messageExtensions = messageExtensions[".${options.descriptorForType.fullName}"]
         options.unknownFields.asMap().forEach { unknownField ->
-            messageExtensions[unknownField.key]?.let { messageExtension ->
+            messageExtensions?.get(unknownField.key)?.let { messageExtension ->
                 val messageExtensionFields = checkNotNull(messages[messageExtension.typeName]).fieldList
                 unknownField.value.lengthDelimitedList.forEach {
                     val codedInputStream = it.newCodedInput()
@@ -119,7 +119,7 @@ class ProtoWriter(
                         }"
                     }
                 }
-            }
+            } ?: println("Unresolvable field .${options.descriptorForType.fullName} ${unknownField.key}")
         }
         return generatedOptions
     }
