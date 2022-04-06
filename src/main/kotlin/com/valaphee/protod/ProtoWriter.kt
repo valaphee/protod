@@ -119,7 +119,7 @@ class ProtoWriter(
                         }"
                     }
                 }
-            } ?: println("Unresolvable field .${options.descriptorForType.fullName} ${unknownField.key}")
+            } ?: kotlin.io.println("Unresolvable field .${options.descriptorForType.fullName} ${unknownField.key}")
         }
         return generatedOptions
     }
