@@ -42,7 +42,7 @@ class ProtoWriter(
 
         printImports(file.dependencyList, file.publicDependencyList)
         println()
-        println("option java_multiple_files = true;")
+        if (!file.options.hasJavaMultipleFiles()) println("option java_multiple_files = true;")
         if (!file.options.hasJavaGenericServices() && file.serviceCount != 0) println("option java_generic_services = true;")
         printOptions(file.options)
         printExtensions(file.extensionList)

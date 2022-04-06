@@ -30,6 +30,9 @@ fun main(arguments: Array<String>) {
     val output by argumentParser.option(ArgType.String, "output", "o", "Output path").required()
     argumentParser.parse(arguments)
 
+    val inputFile = File(input)
+    println("Searching for Protocol Buffers descriptors in $inputFile")
+
     val bytes = File(input).readBytes()
     val files = mutableListOf<DescriptorProtos.FileDescriptorProto>()
     bytes.occurrencesOf(".proto".toByteArray()).forEach {
@@ -39,18 +42,18 @@ fun main(arguments: Array<String>) {
                 val length = CodedInputStream.newInstance(bytes, it - offset, offset).readRawVarint32()
                 if (length == offset + 5) {
                     val begin = it - offset - 1
-                    val end = bytes.size
-                    if (CodedInputStream.newInstance(bytes, begin, end - begin).readTag() == 10) {
-                        var size = end - begin
+                    if (CodedInputStream.newInstance(bytes, begin, bytes.size - begin).readTag() == 10) {
+                        var read = bytes.size - begin
                         while (true) {
-                            val codedInputStream = CodedInputStream.newInstance(bytes, begin, size)
+                            val codedInputStream = CodedInputStream.newInstance(bytes, begin, read)
                             try {
                                 files += DescriptorProtos.FileDescriptorProto.parseFrom(codedInputStream)
+                                println("Descriptor found, begins at 0x${begin.toString(16).uppercase()}, ends at 0x${(begin + read).toString(16).uppercase()}")
 
                                 break
                             } catch (_: Exception) {
                             }
-                            size = codedInputStream.totalBytesRead - 1
+                            read = codedInputStream.totalBytesRead - 1
                         }
                     }
                     break
@@ -61,6 +64,7 @@ fun main(arguments: Array<String>) {
         }
     }
 
+    println("Building lookup table")
     val enums = mutableMapOf<String, DescriptorProtos.EnumDescriptorProto>()
     val messages = mutableMapOf<String, DescriptorProtos.DescriptorProto>()
     files.forEach { file ->
@@ -78,16 +82,22 @@ fun main(arguments: Array<String>) {
     val messageExtensions = mutableMapOf<String, MutableMap<Int, DescriptorProtos.FieldDescriptorProto>>()
     files.forEach { file -> file.extensionList.forEach { extension -> messages[extension.typeName]?.let { messageExtensions.getOrPut(extension.extendee) { mutableMapOf() }[extension.number] = extension } } }
 
+    println("Generating ${files.size} Protocol Buffers definitions")
     val outputPath = File(output)
     files.forEach { file ->
-        if (!included.contains(file.name)) File(outputPath, file.name).apply { parentFile.mkdirs() }.printWriter().use { printWriter ->
-            printWriter.println(
-                """
+        if (!included.contains(file.name)) {
+            val outputFile = File(outputPath, file.name)
+            outputFile.parentFile.mkdirs()
+            outputFile.printWriter().use { printWriter ->
+                printWriter.println(
+                    """
                 /* AUTO-GENERATED FILE. DO NOT MODIFY.
                  */
                 """.trimIndent()
-            )
-            ProtoWriter(printWriter, enums, messages, messageExtensions).print(file)
+                )
+                ProtoWriter(printWriter, enums, messages, messageExtensions).print(file)
+            }
+            println("Generated $outputFile")
         }
     }
 }
