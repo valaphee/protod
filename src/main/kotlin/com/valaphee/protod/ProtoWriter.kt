@@ -261,6 +261,6 @@ class ProtoWriter(
             DescriptorProtos.FieldDescriptorProto.Type.TYPE_SINT32 to "sint32",
             DescriptorProtos.FieldDescriptorProto.Type.TYPE_SINT64 to "sint64",
         )
-        private val max = 1 shl 29
+        private const val max = 1 shl 29
     }
 }
