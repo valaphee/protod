@@ -29,13 +29,13 @@ fun ByteArray.occurrencesOf(pattern: ByteArray): Sequence<Int> {
     }
 
     var i = 0
-    var matches0 = 0
+    var _matches = 0
     return generateSequence {
         while (i < size) {
-            while (matches0 > 0 && pattern[matches0] != this[i]) matches0 = resultTable[matches0 - 1]
-            if (pattern[matches0] == this[i]) matches0++
-            if (matches0 == pattern.size) {
-                matches0 = resultTable[matches0 - 1]
+            while (_matches > 0 && pattern[_matches] != this[i]) _matches = resultTable[_matches - 1]
+            if (pattern[_matches] == this[i]) _matches++
+            if (_matches == pattern.size) {
+                _matches = resultTable[_matches - 1]
                 i++
                 return@generateSequence i - pattern.size
             }

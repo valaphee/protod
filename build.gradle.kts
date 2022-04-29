@@ -21,7 +21,7 @@ plugins {
     id("com.github.johnrengelman.shadow") version "7.0.0"
     id("com.palantir.git-version") version "0.12.3"
     id("edu.sc.seis.launch4j") version "2.5.0"
-    kotlin("jvm") version "1.6.20"
+    kotlin("jvm") version "1.6.21"
     signing
 }
 
@@ -55,15 +55,5 @@ tasks {
 }
 
 application { mainClass.set("com.valaphee.protod.MainKt") }
-
-launch4j {
-    jarTask = tasks.shadowJar.get()
-    icon = "${projectDir}/app.ico"
-    copyright = "Copyright (c) 2021-2022, Valaphee"
-    companyName = "Valaphee"
-    fileDescription = "Protocol Buffers Decompiler extracts Protocol Buffers descriptors from any file"
-    productName = "Protod"
-    copyConfigurable = emptyArray<Any>()
-}
 
 signing { useGpgCmd() }

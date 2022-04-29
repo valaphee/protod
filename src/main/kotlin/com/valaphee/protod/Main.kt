@@ -21,13 +21,15 @@ import com.google.protobuf.DescriptorProtos
 import com.valaphee.protod.util.occurrencesOf
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
-import kotlinx.cli.required
+import kotlinx.cli.default
+import kotlinx.cli.multiple
 import java.io.File
 
 fun main(arguments: Array<String>) {
     val argumentParser = ArgParser("protod")
-    val input by argumentParser.option(ArgType.String, "input", "i", "Input file").required()
-    val output by argumentParser.option(ArgType.String, "output", "o", "Output path").required()
+    val input by argumentParser.argument(ArgType.String, "input", "i", "Input file")
+    val output by argumentParser.argument(ArgType.String, "output", "o", "Output path")
+    val exclude by argumentParser.option(ArgType.String, "exclude", null, "Exclude files").multiple().default(listOf("google/protobuf/compiler/plugin.proto", "google/protobuf/any.proto", "google/protobuf/api.proto", "google/protobuf/descriptor.proto", "google/protobuf/duration.proto", "google/protobuf/empty.proto", "google/protobuf/field_mask.proto", "google/protobuf/source_context.proto", "google/protobuf/struct.proto", "google/protobuf/timestamp.proto", "google/protobuf/type.proto", "google/protobuf/wrappers.proto"))
     argumentParser.parse(arguments)
 
     val inputFile = File(input)
@@ -85,7 +87,7 @@ fun main(arguments: Array<String>) {
     println("Generating ${files.size} Protocol Buffers definitions")
     val outputPath = File(output)
     files.forEach { file ->
-        if (!included.contains(file.name)) {
+        if (!exclude.contains(file.name)) {
             val outputFile = File(outputPath, file.name)
             outputFile.parentFile.mkdirs()
             outputFile.printWriter().use { printWriter ->
@@ -101,18 +103,3 @@ fun main(arguments: Array<String>) {
         }
     }
 }
-
-private val included = setOf(
-    "google/protobuf/compiler/plugin.proto",
-    "google/protobuf/any.proto",
-    "google/protobuf/api.proto",
-    "google/protobuf/descriptor.proto",
-    "google/protobuf/duration.proto",
-    "google/protobuf/empty.proto",
-    "google/protobuf/field_mask.proto",
-    "google/protobuf/source_context.proto",
-    "google/protobuf/struct.proto",
-    "google/protobuf/timestamp.proto",
-    "google/protobuf/type.proto",
-    "google/protobuf/wrappers.proto",
-)
