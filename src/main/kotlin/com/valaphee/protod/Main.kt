@@ -27,8 +27,8 @@ import java.io.File
 
 fun main(arguments: Array<String>) {
     val argumentParser = ArgParser("protod")
-    val input by argumentParser.argument(ArgType.String, "input", "i", "Input file")
-    val output by argumentParser.argument(ArgType.String, "output", "o", "Output path")
+    val input by argumentParser.argument(ArgType.String, "input", "Input file")
+    val output by argumentParser.argument(ArgType.String, "output", "Output path")
     val exclude by argumentParser.option(ArgType.String, "exclude", null, "Exclude files").multiple().default(listOf("google/protobuf/compiler/plugin.proto", "google/protobuf/any.proto", "google/protobuf/api.proto", "google/protobuf/descriptor.proto", "google/protobuf/duration.proto", "google/protobuf/empty.proto", "google/protobuf/field_mask.proto", "google/protobuf/source_context.proto", "google/protobuf/struct.proto", "google/protobuf/timestamp.proto", "google/protobuf/type.proto", "google/protobuf/wrappers.proto"))
     argumentParser.parse(arguments)
 
