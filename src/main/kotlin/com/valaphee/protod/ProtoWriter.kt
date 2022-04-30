@@ -125,37 +125,37 @@ class ProtoWriter(
     }
 
     private fun printExtensions(extensionList: List<DescriptorProtos.FieldDescriptorProto>) {
-        var first0 = first
+        var first = first
         extensionList.groupBy { it.extendee }.forEach {
-            if (first0) first0 = false else println()
+            if (first) first = false else println()
             println("extend ${it.key} {")
-            first = true
+            this.first = true
             indentLevel++
             printFields(it.value)
-            first = first0
+            this.first = first
             indentLevel--
             println("}")
         }
     }
 
     private fun printEnums(enumTypeList: List<DescriptorProtos.EnumDescriptorProto>) {
-        var first0 = first
+        var first = first
         enumTypeList.forEach {
-            if (first0) first0 = false else println()
+            if (first) first = false else println()
             println("enum ${it.name} {")
-            first = true
+            this.first = true
             indentLevel++
             printOptions(it.options)
             printEnumValues(it.valueList)
             if (it.reservedRangeList.isNotEmpty()) {
-                if (first) first = false else println()
+                if (this.first) this.first = false else println()
                 println(it.reservedRangeList.joinToString(prefix = "reserved ", postfix = ";") { if (it.start != it.end) "${it.start} to ${if (it.end != max) it.end else "max"}" else "${it.start}" })
             }
             if (it.reservedNameList.isNotEmpty()) {
-                if (first) first = false else println()
+                if (this.first) this.first = false else println()
                 println(it.reservedNameList.joinToString(prefix = "reserved ", postfix = ";"))
             }
-            first = first0
+            this.first = first
             indentLevel--
             println("}")
         }
@@ -170,11 +170,11 @@ class ProtoWriter(
     }
 
     private fun printMessages(messageTypeList: List<DescriptorProtos.DescriptorProto>) {
-        var first0 = first
+        var first = first
         messageTypeList.forEach {
-            if (first0) first0 = false else println()
+            if (first) first = false else println()
             println("message ${it.name} {")
-            first = true
+            this.first = true
             indentLevel++
             printOptions(it.options)
             printExtensions(it.extensionList)
@@ -183,18 +183,18 @@ class ProtoWriter(
             printMessages(it.nestedTypeList)
             printFields(it.fieldList)
             if (it.extensionRangeCount != 0) {
-                if (first) first = false else println()
+                if (this.first) this.first = false else println()
                 println(it.extensionRangeList.joinToString(prefix = "extensions ", postfix = ";") { if (it.start != it.end) "${it.start} to ${if (it.end != max) it.end else "max"}" else "${it.start}" })
             }
             if (it.reservedRangeCount != 0) {
-                if (first) first = false else println()
+                if (this.first) this.first = false else println()
                 println(it.reservedRangeList.joinToString(prefix = "reserved ", postfix = ";") { if (it.start != it.end) "${it.start} to ${if (it.end != max) it.end else "max"}" else "${it.start}" })
             }
             if (it.reservedNameCount != 0) {
-                if (first) first = false else println()
+                if (this.first) this.first = false else println()
                 println(it.reservedNameList.joinToString(prefix = "reserved ", postfix = ";"))
             }
-            first = first0
+            this.first = first
             indentLevel--
             println("}")
         }
@@ -210,29 +210,29 @@ class ProtoWriter(
     }
 
     private fun printServices(serviceList: List<DescriptorProtos.ServiceDescriptorProto>) {
-        var first0 = first
+        var first = first
         serviceList.forEach {
-            if (first0) first0 = false else println()
+            if (first) first = false else println()
             println("service ${it.name} {")
-            first = true
+            this.first = true
             indentLevel++
             printOptions(it.options)
             printMethods(it.methodList)
-            first = first0
+            this.first = first
             indentLevel--
             println("}")
         }
     }
 
     private fun printMethods(methodList: List<DescriptorProtos.MethodDescriptorProto>) {
-        var first0 = first
+        var first = first
         methodList.forEach {
-            if (first0) first0 = false else println()
+            if (first) first = false else println()
             println("rpc ${it.name} (${it.inputType}) returns (${it.outputType}) {")
-            first = true
+            this.first = true
             indentLevel++
             printOptions(it.options)
-            first = first0
+            this.first = first
             indentLevel--
             println("}")
         }
