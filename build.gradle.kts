@@ -18,10 +18,9 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     application
-    id("com.github.johnrengelman.shadow") version "7.0.0"
     id("com.palantir.git-version") version "0.12.3"
-    id("edu.sc.seis.launch4j") version "2.5.0"
     kotlin("jvm") version "1.6.21"
+    id("org.graalvm.buildtools.native") version "0.9.4"
     signing
 }
 
@@ -36,7 +35,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.google.protobuf:protobuf-kotlin:3.19.4")
+    implementation("com.google.protobuf:protobuf-kotlin:3.20.1")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.6.20")
     implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.4")
 }
@@ -51,7 +50,9 @@ tasks {
 
     withType<Test> { useJUnitPlatform() }
 
-    shadowJar { archiveName = "protod.jar" }
+    nativeBuild {
+        agent.set(true)
+    }
 }
 
 application { mainClass.set("com.valaphee.protod.MainKt") }

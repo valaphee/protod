@@ -15,3 +15,10 @@
  */
 
 rootProject.name = "protod"
+
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
