@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Valaphee.
+ * Copyright (c) 2022-2023, Valaphee.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package com.valaphee.protod
 
 import com.google.protobuf.CodedInputStream
 import com.google.protobuf.DescriptorProtos
-import com.valaphee.protod.util.occurrencesOf
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.default
@@ -29,7 +28,22 @@ fun main(arguments: Array<String>) {
     val argumentParser = ArgParser("protod")
     val input by argumentParser.argument(ArgType.String, "input", "Input file")
     val output by argumentParser.argument(ArgType.String, "output", "Output path")
-    val exclude by argumentParser.option(ArgType.String, "exclude", null, "Exclude files").multiple().default(listOf("google/protobuf/compiler/plugin.proto", "google/protobuf/any.proto", "google/protobuf/api.proto", "google/protobuf/descriptor.proto", "google/protobuf/duration.proto", "google/protobuf/empty.proto", "google/protobuf/field_mask.proto", "google/protobuf/source_context.proto", "google/protobuf/struct.proto", "google/protobuf/timestamp.proto", "google/protobuf/type.proto", "google/protobuf/wrappers.proto"))
+    val exclude by argumentParser.option(ArgType.String, "exclude", null, "Exclude files").multiple().default(
+        listOf(
+            "google/protobuf/compiler/plugin.proto",
+            "google/protobuf/any.proto",
+            "google/protobuf/api.proto",
+            "google/protobuf/descriptor.proto",
+            "google/protobuf/duration.proto",
+            "google/protobuf/empty.proto",
+            "google/protobuf/field_mask.proto",
+            "google/protobuf/source_context.proto",
+            "google/protobuf/struct.proto",
+            "google/protobuf/timestamp.proto",
+            "google/protobuf/type.proto",
+            "google/protobuf/wrappers.proto"
+        )
+    )
     argumentParser.parse(arguments)
 
     val inputFile = File(input)
@@ -82,7 +96,15 @@ fun main(arguments: Array<String>) {
         }
     }
     val messageExtensions = mutableMapOf<String, MutableMap<Int, DescriptorProtos.FieldDescriptorProto>>()
-    files.forEach { file -> file.extensionList.forEach { extension -> messages[extension.typeName]?.let { messageExtensions.getOrPut(extension.extendee) { mutableMapOf() }[extension.number] = extension } } }
+    files.forEach { file ->
+        file.extensionList.forEach { extension ->
+            messages[extension.typeName]?.let {
+                messageExtensions.getOrPut(extension.extendee) {
+                    mutableMapOf()
+                }[extension.number] = extension
+            }
+        }
+    }
 
     println("Generating ${files.size} Protocol Buffers definitions")
     val outputPath = File(output)
@@ -91,15 +113,40 @@ fun main(arguments: Array<String>) {
             val outputFile = File(outputPath, file.name)
             outputFile.parentFile.mkdirs()
             outputFile.printWriter().use { printWriter ->
-                printWriter.println(
-                    """
-                /* AUTO-GENERATED FILE. DO NOT MODIFY.
-                 */
-                """.trimIndent()
-                )
+                printWriter.println("/* AUTO-GENERATED FILE. DO NOT MODIFY.\n*/")
+
                 ProtoWriter(printWriter, enums, messages, messageExtensions).print(file)
             }
             println("Generated $outputFile")
         }
+    }
+}
+
+private fun ByteArray.occurrencesOf(value: ByteArray): Sequence<Int> {
+    if (isEmpty() || value.isEmpty()) return emptySequence()
+    if (value.size == 1) return indices.asSequence().filter { this[it] == value[0] }
+
+    val resultTable = IntArray(value.size)
+    var matches = 0
+    for (i in 1 until value.size) {
+        while (matches > 0 && value[matches] != value[i]) matches = resultTable[matches]
+        if (value[matches] == value[i]) matches++
+        resultTable[i] = matches
+    }
+
+    var i = 0
+    matches = 0
+    return generateSequence {
+        while (i < size) {
+            while (matches > 0 && value[matches] != this[i]) matches = resultTable[matches - 1]
+            if (value[matches] == this[i]) matches++
+            if (matches == value.size) {
+                matches = resultTable[matches - 1]
+                i++
+                return@generateSequence i - value.size
+            }
+            i++
+        }
+        return@generateSequence null
     }
 }

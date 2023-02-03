@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Valaphee.
+ * Copyright (c) 2022-2023, Valaphee.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,11 +17,9 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    application
-    id("com.palantir.git-version") version "0.12.3"
-    kotlin("jvm") version "1.6.21"
-    id("org.graalvm.buildtools.native") version "0.9.4"
-    signing
+    id("com.github.johnrengelman.shadow") version "7.0.0"
+    id("com.palantir.git-version") version "0.15.0"
+    kotlin("jvm") version "1.8.10"
 }
 
 group = "com.valaphee"
@@ -29,32 +27,26 @@ val versionDetails: groovy.lang.Closure<com.palantir.gradle.gitversion.VersionDe
 val details = versionDetails()
 version = "${details.lastTag}.${details.commitDistance}"
 
-repositories {
-    mavenCentral()
-    mavenLocal()
-}
+repositories { mavenCentral() }
 
 dependencies {
-    implementation("com.google.protobuf:protobuf-kotlin:3.20.1")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.6.20")
-    implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.4")
+    implementation("com.google.protobuf:protobuf-kotlin:3.21.12")
+    implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.5")
 }
 
 tasks {
     withType<JavaCompile> {
-        sourceCompatibility = "16"
-        targetCompatibility = "16"
+        sourceCompatibility = "17"
+        targetCompatibility = "17"
     }
 
-    withType<KotlinCompile>().configureEach { kotlinOptions { jvmTarget = "16" } }
+    withType<KotlinCompile>().configureEach { kotlinOptions { jvmTarget = "17" } }
 
-    withType<Test> { useJUnitPlatform() }
+    build { dependsOn(shadowJar) }
 
-    nativeBuild {
-        agent.set(true)
+    jar { manifest { attributes(mapOf("Main-Class" to "com.valaphee.protod.MainKt")) } }
+
+    shadowJar {
+        archiveFileName.set("protod.jar")
     }
 }
-
-application { mainClass.set("com.valaphee.protod.MainKt") }
-
-signing { useGpgCmd() }
